@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}관리자 패널{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4"><i class="bi bi-shield-check text-warning"></i> 관리자 패널</h4>
+
+<!-- 유저 관리 -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-bold">👥 유저 관리 ({{ users|length }}명)</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th><th>아이디</th><th>잔액</th><th>가입일</th><th>상태</th><th>관리자</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr class="{% if not u['is_active'] %}table-secondary{% endif %}">
+          <td>{{ u['id'] }}</td>
+          <td>
+            <a href="{{ url_for('profile', uid=u['id']) }}">{{ u['username'] }}</a>
+            {% if u['is_admin'] %}<span class="badge bg-warning text-dark ms-1">관리자</span>{% endif %}
+          </td>
+          <td>{{ "{:,}".format(u['balance']) }}원</td>
+          <td>{{ u['created_at'][:10] }}</td>
+          <td>
+            {% if u['is_active'] %}
+              <span class="badge bg-success">활성</span>
+            {% else %}
+              <span class="badge bg-secondary">휴면</span>
+            {% endif %}
+          </td>
+          <td>{{ '✅' if u['is_admin'] else '' }}</td>
+          <td>
+            {% if not u['is_admin'] %}
+            <form method="POST" action="{{ url_for('admin_toggle_user', uid=u['id']) }}">
+              <button class="btn btn-sm {% if u['is_active'] %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                {{ '휴면 처리' if u['is_active'] else '활성화' }}
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 상품 관리 -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-bold">📦 상품 관리 ({{ products|length }}개)</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr><th>ID</th><th>상품명</th><th>가격</th><th>판매자</th><th>상태</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr class="{% if p['is_blocked'] %}table-danger{% endif %}">
+          <td>{{ p['id'] }}</td>
+          <td><a href="{{ url_for('product_detail', pid=p['id']) }}">{{ p['name'] }}</a></td>
+          <td>{{ "{:,}".format(p['price']) }}원</td>
+          <td>{{ p['seller_name'] }}</td>
+          <td>
+            {% if p['is_blocked'] %}
+              <span class="badge bg-danger">차단</span>
+            {% elif p['is_sold'] %}
+              <span class="badge bg-secondary">판매완료</span>
+            {% else %}
+              <span class="badge bg-success">판매중</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('admin_toggle_product', pid=p['id']) }}">
+              <button class="btn btn-sm {% if p['is_blocked'] %}btn-outline-success{% else %}btn-outline-danger{% endif %}">
+                {{ '차단 해제' if p['is_blocked'] else '차단' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 신고 내역 -->
+<div class="card shadow-sm">
+  <div class="card-header fw-bold">🚨 신고 내역 ({{ reports|length }}건)</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr><th>ID</th><th>신고자</th><th>대상 유형</th><th>대상 ID</th><th>사유</th><th>일시</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td>{{ r['id'] }}</td>
+          <td>{{ r['reporter_name'] }}</td>
+          <td>
+            {% if r['target_type'] == 'user' %}
+              <span class="badge bg-primary">유저</span>
+            {% else %}
+              <span class="badge bg-info text-dark">상품</span>
+            {% endif %}
+          </td>
+          <td>{{ r['target_id'] }}</td>
+          <td>{{ r['reason'][:40] }}{% if r['reason']|length > 40 %}...{% endif %}</td>
+          <td>{{ r['created_at'][:16] }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin_delete_report', rid=r['id']) }}"
+                  onsubmit="return confirm('신고를 삭제하시겠습니까?')">
+              <button class="btn btn-sm btn-outline-danger">삭제</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

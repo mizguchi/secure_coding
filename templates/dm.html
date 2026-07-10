@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}{{ other['username'] }}님과의 채팅{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 d-flex flex-column" style="height:75vh;">
+    <div class="card flex-grow-1 d-flex flex-column">
+      <div class="card-header d-flex align-items-center gap-2">
+        <a href="{{ url_for('chat') }}" class="btn btn-sm btn-outline-secondary me-2">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <i class="bi bi-person-circle fs-5"></i>
+        <span class="fw-bold">{{ other['username'] }}</span>
+        <a href="{{ url_for('profile', uid=other['id']) }}" class="ms-auto text-decoration-none text-muted small">프로필 보기</a>
+      </div>
+      <div class="card-body overflow-auto d-flex flex-column" id="dmBox" style="flex:1;">
+        {% for m in history %}
+          <div class="mb-1 {% if m['sender_id'] == user['id'] %}text-end{% endif %}">
+            <small class="text-muted">{{ m['sender_name'] }} · {{ m['created_at'][11:16] }}</small><br>
+            <span class="badge {% if m['sender_id'] == user['id'] %}bg-success{% else %}bg-secondary{% endif %} text-wrap text-start" style="max-width:70%;">
+              {{ m['content'] }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer">
+        <div class="input-group">
+          <input id="msgInput" class="form-control" placeholder="메시지 입력..." autocomplete="off">
+          <button class="btn btn-success" id="sendBtn">전송</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+<script>
+  const socket  = io();
+  const myId    = {{ user['id'] }};
+  const room    = "{{ room }}";
+  const box     = document.getElementById('dmBox');
+
+  socket.emit('join', {room});
+
+  function scrollBottom() { box.scrollTop = box.scrollHeight; }
+  scrollBottom();
+
+  function appendMsg(username, content, time, isMe) {
+    const div = document.createElement('div');
+    div.className = 'mb-1' + (isMe ? ' text-end' : '');
+    div.innerHTML = `<small class="text-muted">${username} · ${time}</small><br>
+      <span class="badge ${isMe ? 'bg-success' : 'bg-secondary'} text-wrap text-start" style="max-width:70%;">
+        ${content}
+      </span>`;
+    box.appendChild(div);
+    scrollBottom();
+  }
+
+  document.getElementById('sendBtn').addEventListener('click', sendMsg);
+  document.getElementById('msgInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendMsg();
+  });
+
+  function sendMsg() {
+    const input = document.getElementById('msgInput');
+    const content = input.value.trim();
+    if (!content) return;
+    socket.emit('dm_message', {content, room});
+    input.value = '';
+  }
+
+  socket.on('dm_message', data => {
+    const isMe = data.sender_id === myId;
+    appendMsg(data.username, data.content, data.time, isMe);
+  });
+</script>
+{% endblock %}

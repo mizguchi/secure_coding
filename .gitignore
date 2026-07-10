@@ -1,0 +1,5 @@
+secret.key
+market.db
+venv/
+__pycache__/
+*.pyc

@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}마이페이지{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4">마이페이지</h4>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">소개글 수정</h6>
+        <form method="POST">
+          <input type="hidden" name="action" value="update_bio">
+          <textarea class="form-control mb-3" name="bio" rows="4"
+                    placeholder="자기소개를 입력하세요.">{{ user['bio'] or '' }}</textarea>
+          <button class="btn btn-success btn-sm w-100">저장</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">비밀번호 변경</h6>
+        <form method="POST">
+          <input type="hidden" name="action" value="change_password">
+          <input class="form-control mb-2" type="password" name="current_password" placeholder="현재 비밀번호" required>
+          <input class="form-control mb-3" type="password" name="new_password" placeholder="새 비밀번호 (4자 이상)" required>
+          <button class="btn btn-outline-danger btn-sm w-100">변경</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div>
+          <h6 class="fw-bold mb-3">내 잔액</h6>
+          <h3 class="text-success fw-bold">{{ "{:,}".format(user['balance']) }}원</h3>
+        </div>
+        <a href="{{ url_for('transfer') }}" class="btn btn-outline-success btn-sm mt-3">송금하기</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if transactions %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-bold">최근 송금 내역</div>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr><th>구분</th><th>상대방</th><th>금액</th><th>일시</th></tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr>
+          <td>
+            {% if t['sender_id'] == user['id'] %}
+              <span class="text-danger">송금</span>
+            {% else %}
+              <span class="text-success">수신</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if t['sender_id'] == user['id'] %}{{ t['receiver_name'] }}{% else %}{{ t['sender_name'] }}{% endif %}
+          </td>
+          <td>
+            {% if t['sender_id'] == user['id'] %}
+              <span class="text-danger">-{{ "{:,}".format(t['amount']) }}원</span>
+            {% else %}
+              <span class="text-success">+{{ "{:,}".format(t['amount']) }}원</span>
+            {% endif %}
+          </td>
+          <td>{{ t['created_at'][:16] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<h6 class="fw-bold mb-3">내 상품 ({{ my_products|length }}개)</h6>
+{% if my_products %}
+  <div class="row g-3">
+    {% for p in my_products %}
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="{{ url_for('product_detail', pid=p['id']) }}" class="text-decoration-none text-dark">
+        <div class="card product-card h-100 position-relative">
+          {% if p['is_blocked'] %}
+            <span class="badge bg-danger sold-badge">차단</span>
+          {% elif p['is_sold'] %}
+            <span class="badge bg-secondary sold-badge">판매완료</span>
+          {% endif %}
+          {% if p['image_url'] %}
+            <img src="{{ p['image_url'] }}" class="product-img card-img-top"
+                 onerror="this.src='https://placehold.co/400x200?text=No+Image'" alt="{{ p['name'] }}">
+          {% else %}
+            <div class="product-img card-img-top d-flex align-items-center justify-content-center text-muted">
+              이미지 없음
+            </div>
+          {% endif %}
+          <div class="card-body p-2">
+            <p class="mb-1 fw-semibold" style="font-size:.9rem;">{{ p['name'] }}</p>
+            <p class="text-success fw-bold mb-0">{{ "{:,}".format(p['price']) }}원</p>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-muted">등록한 상품이 없습니다. <a href="{{ url_for('add_product') }}">상품 등록하기</a></p>
+{% endif %}
+
+<h6 class="fw-bold mb-3 mt-4">찜한 상품 ({{ wishlists|length }}개)</h6>
+{% if wishlists %}
+  <div class="row g-3 mb-4">
+    {% for p in wishlists %}
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="{{ url_for('product_detail', pid=p['id']) }}" class="text-decoration-none text-dark">
+        <div class="card product-card h-100 position-relative">
+          {% if p['is_sold'] %}
+            <span class="badge bg-secondary sold-badge">판매완료</span>
+          {% endif %}
+          {% if p['image_url'] %}
+            <img src="{{ p['image_url'] }}" class="product-img card-img-top"
+                 onerror="this.src='https://placehold.co/400x200?text=No+Image'" alt="{{ p['name'] }}">
+          {% else %}
+            <div class="product-img card-img-top d-flex align-items-center justify-content-center text-muted">
+              이미지 없음
+            </div>
+          {% endif %}
+          <div class="card-body p-2">
+            <p class="mb-1 fw-semibold" style="font-size:.9rem;">{{ p['name'] }}</p>
+            <p class="text-success fw-bold mb-0">{{ "{:,}".format(p['price']) }}원</p>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-muted mb-4">찜한 상품이 없습니다.</p>
+{% endif %}
+
+<div class="card shadow-sm border-danger mt-4">
+  <div class="card-body">
+    <h6 class="fw-bold text-danger mb-3">계정 삭제</h6>
+    <p class="text-muted small mb-3">계정을 삭제하면 모든 데이터가 사라지며 복구할 수 없습니다.</p>
+    <button class="btn btn-outline-danger btn-sm" data-bs-toggle="collapse" data-bs-target="#deleteForm">
+      계정 삭제
+    </button>
+    <div class="collapse mt-3" id="deleteForm">
+      <form method="POST" onsubmit="return confirm('정말 계정을 삭제하시겠습니까?')">
+        <input type="hidden" name="action" value="delete_account">
+        <input class="form-control mb-2" type="password" name="confirm_password"
+               placeholder="비밀번호 확인" required style="max-width:300px;">
+        <button class="btn btn-danger btn-sm">삭제 확인</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

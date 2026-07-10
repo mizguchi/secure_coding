@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}중고마켓{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { background:#f8f9fa; }
+    .navbar-brand { font-weight:700; font-size:1.4rem; }
+    .product-card { transition:transform .15s; }
+    .product-card:hover { transform:translateY(-3px); box-shadow:0 4px 12px rgba(0,0,0,.1); }
+    .product-img { width:100%; height:200px; object-fit:cover; background:#e9ecef; }
+    .sold-badge { position:absolute; top:8px; left:8px; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success mb-4">
+  <div class="container">
+    <a class="navbar-brand" href="{{ url_for('index') }}">중고마켓</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <form class="d-flex ms-auto me-3" method="GET" action="{{ url_for('index') }}">
+        <input class="form-control me-2" type="search" name="q" placeholder="상품 검색..." value="{{ request.args.get('q','') }}">
+        <button class="btn btn-light" type="submit">검색</button>
+      </form>
+      <ul class="navbar-nav">
+        {% if user %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('add_product') }}">등록</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('chat') }}">채팅</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('transfer') }}">송금</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('mypage') }}">{{ user['username'] }}</a></li>
+          {% if user['is_admin'] %}
+            <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('admin') }}">관리자</a></li>
+          {% endif %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">로그아웃</a></li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">로그인</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">회원가입</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container mb-5">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-warning alert-dismissible fade show">
+          {{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // CSRF 토큰을 모든 POST form에 자동 주입
+  document.addEventListener('DOMContentLoaded', function() {
+    const token = '{{ csrf_token() }}';
+    document.querySelectorAll('form[method="POST"], form[method="post"]').forEach(function(form) {
+      if (!form.querySelector('input[name="csrf_token"]')) {
+        const inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'csrf_token';
+        inp.value = token;
+        form.appendChild(inp);
+      }
+    });
+  });
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

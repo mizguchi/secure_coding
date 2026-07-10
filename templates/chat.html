@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}전체 채팅{% endblock %}
+{% block content %}
+<div class="row g-3" style="height:75vh;">
+  <!-- 유저 목록 -->
+  <div class="col-md-3">
+    <div class="card h-100">
+      <div class="card-header fw-bold"><i class="bi bi-people"></i> 유저 목록</div>
+      <div class="card-body p-0 overflow-auto">
+        <div class="list-group list-group-flush">
+          {% for u in users %}
+          <a href="{{ url_for('dm', uid=u['id']) }}"
+             class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+            <i class="bi bi-person-circle"></i> {{ u['username'] }}
+            <span class="badge bg-primary ms-auto">DM</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 전체 채팅창 -->
+  <div class="col-md-9 d-flex flex-column">
+    <div class="card flex-grow-1 d-flex flex-column">
+      <div class="card-header fw-bold"><i class="bi bi-chat-dots"></i> 전체 채팅</div>
+      <div class="card-body overflow-auto d-flex flex-column" id="chatBox" style="flex:1;">
+        {% for m in history %}
+          <div class="mb-1 {% if m['sender_id'] == user['id'] %}text-end{% endif %}">
+            <small class="text-muted">{{ m['sender_name'] }} · {{ m['created_at'][11:16] }}</small><br>
+            <span class="badge {% if m['sender_id'] == user['id'] %}bg-success{% else %}bg-secondary{% endif %} text-wrap text-start" style="max-width:70%;">
+              {{ m['content'] }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer">
+        <div class="input-group">
+          <input id="msgInput" class="form-control" placeholder="메시지 입력..." autocomplete="off">
+          <button class="btn btn-success" id="sendBtn">전송</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+<script>
+  const socket  = io();
+  const myId    = {{ user['id'] }};
+  const box     = document.getElementById('chatBox');
+
+  socket.emit('join', {room: 'global'});
+
+  function scrollBottom() { box.scrollTop = box.scrollHeight; }
+  scrollBottom();
+
+  function appendMsg(username, content, time, isMe) {
+    const div = document.createElement('div');
+    div.className = 'mb-1' + (isMe ? ' text-end' : '');
+    div.innerHTML = `<small class="text-muted">${username} · ${time}</small><br>
+      <span class="badge ${isMe ? 'bg-success' : 'bg-secondary'} text-wrap text-start" style="max-width:70%;">
+        ${content}
+      </span>`;
+    box.appendChild(div);
+    scrollBottom();
+  }
+
+  document.getElementById('sendBtn').addEventListener('click', sendMsg);
+  document.getElementById('msgInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendMsg();
+  });
+
+  function sendMsg() {
+    const input = document.getElementById('msgInput');
+    const content = input.value.trim();
+    if (!content) return;
+    socket.emit('global_message', {content});
+    input.value = '';
+  }
+
+  socket.on('global_message', data => {
+    const now = new Date().toTimeString().slice(0,5);
+    const isMe = data.sender === '{{ user["username"] }}';
+    appendMsg(data.sender, data.content, now, isMe);
+});
+</script>
+{% endblock %}

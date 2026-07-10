@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}{{ profile_user['username'] }}님의 프로필{% endblock %}
+{% block content %}
+<div class="card shadow-sm mb-4">
+  <div class="card-body d-flex align-items-center gap-3">
+    <div class="flex-grow-1">
+      <h5 class="fw-bold mb-1">{{ profile_user['username'] }}</h5>
+      <p class="text-muted mb-0">{{ profile_user['bio'] or '소개글이 없습니다.' }}</p>
+    </div>
+    {% if user and user['id'] != profile_user['id'] %}
+      <div class="d-flex flex-column gap-2">
+        <a href="{{ url_for('dm', uid=profile_user['id']) }}" class="btn btn-success btn-sm">1대1 채팅</a>
+        <a href="{{ url_for('report', **{'type':'user','id':profile_user['id']}) }}"
+           class="btn btn-outline-danger btn-sm">신고</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<h6 class="fw-bold mb-3">판매 중인 상품 ({{ products|length }}개)</h6>
+{% if products %}
+  <div class="row g-3">
+    {% for p in products %}
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="{{ url_for('product_detail', pid=p['id']) }}" class="text-decoration-none text-dark">
+        <div class="card product-card h-100">
+          {% if p['image_url'] %}
+            <img src="{{ p['image_url'] }}" class="product-img card-img-top"
+                 onerror="this.src='https://placehold.co/400x200?text=No+Image'" alt="{{ p['name'] }}">
+          {% else %}
+            <div class="product-img card-img-top d-flex align-items-center justify-content-center text-muted">
+              이미지 없음
+            </div>
+          {% endif %}
+          <div class="card-body p-2">
+            <p class="mb-1 fw-semibold" style="font-size:.9rem;">{{ p['name'] }}</p>
+            <p class="text-success fw-bold mb-0">{{ "{:,}".format(p['price']) }}원</p>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-muted">판매 중인 상품이 없습니다.</p>
+{% endif %}
+{% endblock %}
